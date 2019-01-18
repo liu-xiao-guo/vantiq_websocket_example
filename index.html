@@ -1,0 +1,153 @@
+<!DOCTYPE HTML>
+
+<html>
+   <head>
+		<style>
+			.alnright { text-align: right; }
+		</style>
+      <script src="./js/jquery-3.3.1.min.js"></script>
+      <script type = "text/javascript">
+		 	var ws;
+		 
+			function insertData() {
+				var body = {};
+				body.op = "insert";
+				body.resourceName = "Person";
+				body.object = { "id": 10, "name":"zhang san", "number":"1344444444"};
+				body.parameters = { "requestId": "94563Reading" };
+				console.log("data to be sent: " + JSON.stringify(body));
+				ws.send(JSON.stringify(body));
+			}
+
+			// This function subscribe events from Vantiq server. When there is a 
+			// data change, it can receive the event. On the client side, it can 
+			// receive the data event.
+			function subscribeDataChanges() {
+				var body = {};
+				body.op = "subscribe";
+				body.resourceName =  "events";
+				body.resourceId = "/types/Person/insert"
+				body.parameters =  {
+        			"requestId": "Person/insert"
+				 }
+				console.log("data to be sent: " + JSON.stringify(body));
+				ws.send(JSON.stringify(body));
+			}
+
+			$( document ).ready(function() {
+				 console.log( "ready!" );
+				// When page is loaded, start to authenticate
+				console.log("Going to authenticate with Vantiq server");
+				 WebSocketTest();
+			});
+		 
+			function WebSocketTest() {
+            
+            if ("WebSocket" in window) {
+               // alert("WebSocket is supported by your Browser!");
+			   	console.log("WebSocket is supported by your Browser!");
+               
+               // Let us open a web socket
+               ws = new WebSocket("wss://dev.vantiq.cn/api/v1/wsock/websocket");
+			   
+			   	function abToString(ab) {
+				  		var binaryString = '';
+				  		var bytes = new Uint8Array(ab);
+						var length = bytes.length;
+						  
+				  		for (var i = 0; i < length; i++) {
+							binaryString += String.fromCharCode(bytes[i]);
+				  		}
+				  		return binaryString;
+					}
+				
+					function processMessage(msg) {
+				  		var evtObject = JSON.parse(msg);
+				  		console.log("evt: " + JSON.stringify(evtObject));
+				  
+						if (evtObject["status"] == 200) {
+							console.log("horray!, message is successfully sent to the Vantiq server");
+							// we've gotten a good response from the server
+							// evtObject["body"] contains the response data
+							// evtObject["errors"] contains any errors associated with the request
+						} else if (evtObject["status"] == 100) {
+							console.log("Vantiq pushed something to our client")
+							var request_id = evtObject.headers["X-Request-Id"];
+							console.log("request_id: " + request_id);
+							if (request_id === "Person/insert") {
+								// This is for our subscribe message. We can display it. 
+								var value = evtObject.body.value;
+								var id = value.id;
+								var name = value.name;
+								var number = value.number;
+
+								// Now let's update the display here
+								$("#id").html(id);
+								$("#name").html(name);
+								$("#number").html(number);
+							}
+						}
+					}
+				
+				// the WebSocket has received a message from the server
+				function wsonmessage(evt) {
+					console.log("wsonmessage is called!");
+			   	// the server returns a Blob in evt.data (rather than text)
+			   	var blobReader = new FileReader();
+			   	blobReader.addEventListener("loadend", function() {
+				 		processMessage(abToString(blobReader.result));
+					});
+					
+					blobReader.readAsArrayBuffer(evt.data);
+			 	}
+				
+            ws.onopen = function() {
+                  
+            	// Web Socket is connected, send data using send()
+				  	var body = {};
+				  	body.op = "validate";
+				  	body.resourceName = "system.credentials";
+				  	body.object = "YOUR TOKEN";
+				  // body.op =  "authenticate";
+				  // body.resourceName = "system.credentials";
+				  // body.object = { "username": "YOUR USERNAME", "password": "YOUR PASSWORD" };
+				  
+				  console.log("Sent message: " + JSON.stringify(body));
+				  
+                  ws.send(JSON.stringify(body));
+                  // alert("Message is sent...");
+				  		console.log("Message is sent...");
+               };
+			   
+			   	ws.onmessage = wsonmessage			   
+								
+            	ws.onclose = function() {                   
+				  		console.log("Connection is closed...");
+            	};
+            } else {
+      			// The browser doesn't support WebSocket
+               alert("WebSocket NOT supported by your Browser!");
+            }
+			}
+
+      </script>
+		
+   </head>
+   
+   <body>
+      <div id = "sse">
+			<a href = "javascript:insertData()">Send</a> <br>
+			<a href = "javascript:subscribeDataChanges()">Subscribe</a> <br>
+			
+			<br> <br>
+			<div id="table">
+				<table>
+						<tr><td class='alnright'>id: </td> <td  id="id"> </td> </tr>
+						<tr><td class='alnright'>name: </td> <td id="name"> </td></tr>
+						<tr><td class='alnright'>number: </td> <td id="number"></td></tr>
+				</table>
+		  </div>
+      </div>
+      
+   </body>
+</html>
