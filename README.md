@@ -26,4 +26,4 @@ Meanwhile, you can creaet a type in Vantiq, and it has the following three prope
 2) name: String
 3) number: String
 
-You can insert data into the table by clicking the "send" hyperlink, and you can receive data notification when there is a new data insert on the Vantiq cloud.
+You can insert data into the table by clicking the "send" hyperlink, and you can receive data notification when there is a new data insert on the Vantiq cloud. You need to click the "Subscribe" hyperlink first so that you can receive the data change.
